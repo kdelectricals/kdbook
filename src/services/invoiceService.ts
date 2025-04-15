@@ -1,7 +1,7 @@
 import Invoice from "../../database/models/Invoice";
 import Item from "../../database/models/Item";
 import sequelize from "../../database/config";
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Fetch an invoice with all its items.
  */
@@ -28,7 +28,8 @@ export const getInvoiceWithItems = async (invoiceID: number) => {
     return { success: true, data: invoice };
   } catch (error) {
     console.error("Error fetching invoice:", error);
-    return { error: error.message || "Internal Server Error", status: 500 };
+    const err = error as Error;
+    return { error: err.message || "Internal Server Error", status: 500 };
   }
 };
 
@@ -46,7 +47,7 @@ export const createInvoiceWithItems = async (invoiceData: any) => {
     }
 
     // Create the invoice
-    const newInvoice = await Invoice.create(
+    const newInvoice : any = await Invoice.create(
       {
         InvoiceNo,
         InvoiceDate,
@@ -75,7 +76,7 @@ export const createInvoiceWithItems = async (invoiceData: any) => {
     await transaction.commit(); // Commit transaction if successful
 
     return { success: true, data: { invoice: newInvoice, items: invoiceItems } };
-  } catch (error) {
+  } catch (error:any) {
     await transaction.rollback(); // Rollback transaction on error
     console.error("Error creating invoice:", error);
     return { error: error.message || "Internal Server Error", status: 500 };

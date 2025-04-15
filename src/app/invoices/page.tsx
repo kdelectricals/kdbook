@@ -1,5 +1,5 @@
 "use client";
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import {
   Autocomplete,
@@ -17,16 +17,15 @@ import {
   Grid,
   TableContainer
 } from "@mui/material";
-import { AddCircle, Delete } from "@mui/icons-material";
+import {  Delete } from "@mui/icons-material";
 import { Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 
-
 export default function CreateInvoice() {
-  type Customer = {
+  type Buyer = {
     customerID: any;
     id: number;
-    firstName: string;
-    lastName: string;
+    first_name: string;
+    last_name: string;
     contact: string;
     email: string;
     company?: string;
@@ -44,8 +43,8 @@ export default function CreateInvoice() {
     total: number;
   };
 
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [customers, setCustomers] = useState<Buyer[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<Buyer | null>(null);
   const [items, setItems] = useState<Item[]>([
     { itemName: "", quantity: 1, unit: "", hsn: "", rate: 0, discount: 0, discountedRate: 0, total: 0 },
   ]);
@@ -59,13 +58,17 @@ export default function CreateInvoice() {
 
 
   useEffect(() => {
-    fetch("/api/customers")
+    fetch("/api/buyers")
       .then((res) => res.json())
-      .then((data: Customer[]) => setCustomers(data))
+      .then((data: { data: Buyer[] }) => setCustomers(data.data))
       .catch((err) => console.error("Error fetching customers:", err));
+      setCgst(9);
+      setSgst(9) ;
+      setIgst(0);
+      setReference("");
   }, []);
 
-  const handleCustomerChange = (event: any, newValue: Customer | null) => {
+  const handleCustomerChange = (event: any, newValue: Buyer | null) => {
     setSelectedCustomer(newValue);
   };
 
@@ -89,27 +92,35 @@ export default function CreateInvoice() {
     setOpenPreview(true);
   };
   
-  const handlePreviewClose = () => {
-    setOpenPreview(false);
-  };
+  // const handlePreviewClose = () => {
+  //   setOpenPreview(false);
+  // };
   
 
-  const handleItemChange = (index: number, field: keyof Item, value: any) => {
+  const handleItemChange = <K extends keyof Item>(
+    index: number,
+    field: K,
+    value: Item[K] // ✅ Ensures value matches the expected type
+  ) => {
     const newItems = [...items];
     newItems[index][field] = value;
-
+  
+    // ✅ Ensure calculations only run for numeric fields
     if (field === "quantity" || field === "rate" || field === "discount") {
-      const rate = newItems[index].rate;
-      const discount = newItems[index].discount;
+      const rate = newItems[index].rate || 0;
+      const discount = newItems[index].discount || 0;
+      const quantity = newItems[index].quantity || 0;
+  
       const discountedRate = rate - (rate * discount) / 100;
-      const quantity = newItems[index].quantity;
-
+      const total = quantity * discountedRate;
+  
       newItems[index].discountedRate = discountedRate;
-      newItems[index].total = quantity * discountedRate;
+      newItems[index].total = total;
     }
-
+  
     setItems(newItems);
   };
+  
 
   const subTotal = items.reduce((sum, item) => sum + item.total, 0);
   const cgstAmount = (subTotal * cgst) / 100;
@@ -163,7 +174,10 @@ export default function CreateInvoice() {
       setInvoiceId(data.invoice.id);
     } catch (error) {
       console.error("❌ Error creating invoice:", error);
-      alert(error.message);
+      if(error instanceof Error){
+        alert(error.message);
+      }
+     
     }
   };
 
@@ -201,7 +215,7 @@ export default function CreateInvoice() {
 
       <Autocomplete
         options={customers}
-        getOptionLabel={(option) => `${option.firstName} ${option.lastName}`}
+        getOptionLabel={(option) => `${option.first_name} ${option.last_name}`}
         value={selectedCustomer}
         onChange={handleCustomerChange}
         renderInput={(params) => <TextField {...params} label="Select Customer" variant="outlined" fullWidth margin="normal" />}
@@ -328,7 +342,7 @@ export default function CreateInvoice() {
       <Typography variant="h6" sx={{ fontWeight: "bold", borderBottom: "2px solid #ddd", mb: 2 }}>Bill To:</Typography>
       {selectedCustomer ? (
         <Grid>
-          <Typography sx={{ fontWeight: "bold" }}>{selectedCustomer.firstName} {selectedCustomer.lastName}</Typography>
+          <Typography sx={{ fontWeight: "bold" }}>{selectedCustomer.first_name} {selectedCustomer.first_name}</Typography>
           <Typography>{selectedCustomer.company || "Individual"}</Typography>
           <Typography>{selectedCustomer.address || "N/A"}</Typography>
           <Typography>{selectedCustomer.contact}</Typography>

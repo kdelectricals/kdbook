@@ -1,18 +1,27 @@
 import { AppProps } from "next/app";
-import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { getSession } from "next-auth/react";
+import { SessionProvider } from "next-auth/react";
 
-const theme = createTheme({
-  palette: {
-    primary: { main: "#1976d2" },
-    secondary: { main: "#dc004e" },
-  },
-});
+export default function App({ Component, pageProps }: AppProps) {
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-export default function MyApp({ Component, pageProps }: AppProps) {
+  useEffect(() => {
+    getSession().then((session) => {
+      if (!session && router.pathname !== "/login") {
+        router.push("/login");
+      }
+      setLoading(false);
+    });
+  }, [router]);
+
+  if (loading) return <p>Loading...</p>;
+
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <SessionProvider session={pageProps.session}>
       <Component {...pageProps} />
-    </ThemeProvider>
+    </SessionProvider>
   );
 }
